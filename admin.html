@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin</title> 
+  <style>
+    *{
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      outline: none;
+      transition: 200ms ease all;
+    }
+    body{
+      display: flex;
+      justify-content: start;
+      align-items: center;
+      flex-direction: column;
+      height: 100dvh;
+      width: 100%;
+    }
+    #backBtn{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      background: none;
+      border: solid 1px rgba(0,0,0,0.5);
+      border-radius: 5px;
+      font-size: 1.2rem;
+    }
+    main{
+      margin-top: 20px;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: start;
+      align-items: center;
+      flex-direction: column;
+      gap: 50px;
+    }
+    form{
+      width: 350px;
+      padding: 30px 15px;
+      border: solid 2px #222;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      flex-direction: column;
+    }
+    .row{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 320px;
+      height: 50px;
+      position: relative;
+    }
+    .row *{
+      flex-grow: 1;
+      height: 100%;
+    }
+    .row label{
+      position: absolute;
+      left: 10px;
+      top: 14px;
+      pointer-events: none;
+      font-size: 1.1rem;
+      color: black;
+      z-index: 2;
+    }
+    .row input{
+      padding: 10px;
+      font-size: 1.2rem;
+    }
+    label::after{
+      content: "";
+      position: absolute;
+      background: white;
+      width: 110px;
+      transform: translate(-2px, -6px);
+      height: 3px;
+      top: 14px;
+      left: -2px;
+      z-index: -1;
+    }
+    input:focus + label::after, input:not(:placeholder-shown) + label::after{
+      z-index: -1;
+    }
+    input:focus + label, input:not(:placeholder-shown) + label{
+      transform: translate(-2px, -23px);
+      font-size: 1rem;
+      z-index: 3;
+    }
+    #productList{
+      padding: 20px 15px;
+      width: 350px;
+      border: 2px solid #222;
+      border-radius: 10px;
+    }
+    .list{
+      display: grid;
+      grid-template-columns: 1fr 50px 1fr;
+      text-align: center;
+    }
+    .list div:not(.wrapper){
+      border-bottom: 1px solid #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .list:nth-child(2) div:not(.wrapper){
+      border-top: 1px solid #111;
+    }
+    .wrapper button{
+      width: 45px;
+      height: 45px;
+    }
+    .heading{
+      font-weight: bold;
+      border-bottom: 1px solid #111;
+    }
+    .name{
+      max-width: 100%;
+      word-break: break-word;
+      word-wrap: break-word;
+      overflow: hidden;
+    }
+  </style>
+  <link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    rel="stylesheet">
+</head>
+<body>
+  <header>
+    <button id="backBtn">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  </header>
+  <main>
+    <h1>Admin Page</h1>
+    <form id="productForm">
+      <div class="row">
+      <input type="text" id="productName" required placeholder=" " />
+      <label for="productName">Product Name</label>
+      </div>
+      <div class="row">
+      <input type="number" id="productPrice" required placeholder=" " />
+      <label for="productPrice">Product Price</label>
+      </div>
+      <div class="row">
+      <button type="button" id="cancelBtn" style="display: none;">CANCEL</button>
+      <button type="submit" id="addBtn">ADD</button>
+      </div>
+    </form>
+    <div id="productList"></div>
+  </main>
+  <script>
+    const productForm = document.getElementById('productForm');
+    const productName = document.getElementById('productName');
+    const productPrice = document.getElementById('productPrice');
+    const productList = document.getElementById('productList');
+    const addBtn = document.getElementById('addBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    let editIndex = null;
+
+
+const fetchProducts = async () => {
+  const res = await fetch('/products');
+  const products = await res.json();
+  productList.innerHTML = `
+    <div class="list heading">
+      <div>Product Name</div>
+      <div>Price</div>
+      <div>Actions</div>
+    </div>
+  ` + products.map((p, i) => `
+    <div class="list">
+      <div class="name">${p.name}</div>
+      <div>${p.price}</div>
+      <div>
+        <div class="wrapper">
+          <button onclick="editProduct(${i})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button onclick="deleteProduct(${i})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+};
+    
+    
+  const scroll = pos => {
+    window.scrollTo({
+      top: pos,
+      behavior: "smooth"
+    })
+    let interval = setInterval(function() {
+      if(window.scrollY == pos){
+        productName.focus();
+        clearInterval(interval)
+      }
+    }, 10);
+  }
+const editProduct = (index) => {
+  fetch('/products')
+    .then((res) => res.json())
+    .then((products) => {
+      const product = products[index];
+      productName.value = product.name;
+      productPrice.value = product.price;
+      editIndex = index;  // Set the editIndex globally
+      addBtn.textContent = 'SAVE';
+      scroll(0)
+      cancelBtn.style.display = 'inline';
+    });
+};
+  productPrice.addEventListener("keydown", (e)=>{
+    if(e.key == 'Enter'){
+      productName.focus();
+    }
+  })
+const deleteProduct = async (index) => {
+  if (confirm('Are you sure you want to delete this product?')) {
+    const products = await fetch('/products').then((res) => res.json());
+    const productNameToDelete = products[index].name;
+
+    await fetch(`/products/${productNameToDelete}`, { method: 'DELETE' });
+    fetchProducts();
+  }
+};
+
+productForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const product = {
+    name: productName.value.trim(),
+    price: productPrice.value.trim(),
+    editIndex,  // Send the editIndex in the request
+  };
+
+  try {
+    const res = await fetch('/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(product),
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      alert(error);
+      return;
+    }
+
+    productName.value = '';
+    productPrice.value = '';
+    addBtn.textContent = 'ADD';
+    cancelBtn.style.display = 'none';
+    editIndex = null;  // Reset the editIndex
+    fetchProducts();
+  } catch (error) {
+    alert('Error adding/updating product');
+  }
+});
+    
+    
+
+    cancelBtn.addEventListener('click', () => {
+      productName.value = '';
+      productPrice.value = '';
+      addBtn.textContent = 'Add Product';
+      cancelBtn.style.display = 'none';
+      editIndex = null;
+    });
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      window.location.href = '/';
+    });
+
+    fetchProducts();
+  </script>
+</body>
+</html>
